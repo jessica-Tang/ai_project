@@ -62,6 +62,21 @@ bash scripts/run_local_flow.sh "https://shop.example.com/shoe-ultra-1" ./artifac
 - `artifacts/creative.json`
 - `artifacts/flow.json`
 
+
+## 打包成 ZIP（便于拷贝到本地运行）
+
+```bash
+bash scripts/package_zip.sh
+```
+
+默认输出：`dist/ai_ad_tool_preview.zip`。
+
+可自定义输出目录和文件名：
+
+```bash
+bash scripts/package_zip.sh ./dist my_ad_tool.zip
+```
+
 ## 测试
 
 ```bash
