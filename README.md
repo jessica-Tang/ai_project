@@ -14,6 +14,28 @@ python -m ad_tool.cli creative "轻薄跑鞋" --channel meta --sizes 1080x1080,1
 python -m ad_tool.cli structure --channel meta --budget 600 --targeting 兴趣受众,类似受众 --creative-count 2
 ```
 
+## 一键联调（推荐）
+
+```bash
+python -m ad_tool.cli flow https://shop.example.com/shoe-ultra-1 --channel meta --budget 600 --use-ai-creatives --ai-creative-count 3
+```
+
+会返回一个合并 JSON：
+- `plan`：模块 A 产物
+- `creatives`：素材列表（可选 AI）
+- `structure`：模块 B 产物
+
+## 本地脚本（自动生成文件）
+
+```bash
+bash scripts/run_local_flow.sh "https://shop.example.com/shoe-ultra-1" ./artifacts
+```
+
+将输出：
+- `artifacts/plan.json`
+- `artifacts/creative.json`
+- `artifacts/flow.json`
+
 ## 测试
 
 ```bash

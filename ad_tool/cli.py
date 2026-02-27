@@ -2,6 +2,7 @@ import argparse
 import json
 
 from .creative_generator import generate_creatives
+from .flow import run_local_flow
 from .models import AdInput, Budget, CreativeAsset, Schedule, TargetingSegment
 from .planner import generate_plan_from_link
 from .structure_builder import build_account_structure
@@ -50,6 +51,17 @@ def cmd_structure(args: argparse.Namespace) -> None:
     print(json.dumps(structure.to_dict(), ensure_ascii=False, indent=2))
 
 
+def cmd_flow(args: argparse.Namespace) -> None:
+    payload = run_local_flow(
+        product_url=args.product_url,
+        channel=args.channel,
+        budget_total=args.budget,
+        use_ai_creatives=args.use_ai_creatives,
+        ai_creative_count=args.ai_creative_count,
+    )
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="AI 广告生成工具")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -77,6 +89,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_structure.add_argument("--targeting", default="兴趣受众,类似受众")
     p_structure.add_argument("--creative-count", type=int, default=2)
     p_structure.set_defaults(func=cmd_structure)
+
+    p_flow = sub.add_parser("flow", help="一键联调：串联模块 A -> C(可选) -> B")
+    p_flow.add_argument("product_url")
+    p_flow.add_argument("--channel", default="meta")
+    p_flow.add_argument("--budget", type=float, default=500.0)
+    p_flow.add_argument("--use-ai-creatives", action="store_true")
+    p_flow.add_argument("--ai-creative-count", type=int, default=3)
+    p_flow.set_defaults(func=cmd_flow)
 
     return parser
 
