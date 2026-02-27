@@ -1,6 +1,6 @@
 import unittest
 
-from ad_tool.web_preview import _build_ad_input
+from ad_tool.web_preview import _build_ad_input, _build_parser
 
 
 class WebPreviewTests(unittest.TestCase):
@@ -19,6 +19,11 @@ class WebPreviewTests(unittest.TestCase):
         self.assertEqual(ad_input.budget.total, 500)
         self.assertEqual(len(ad_input.targeting), 1)
         self.assertEqual(len(ad_input.creatives), 1)
+
+    def test_parser_defaults(self):
+        args = _build_parser().parse_args([])
+        self.assertEqual(args.host, "0.0.0.0")
+        self.assertEqual(args.port, 8000)
 
 
 if __name__ == "__main__":

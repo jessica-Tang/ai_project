@@ -1,3 +1,4 @@
+import argparse
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -114,11 +115,23 @@ class PreviewHandler(BaseHTTPRequestHandler):
             self._send_json({"error": str(exc)}, status=400)
 
 
-def run_preview_server(host: str = "127.0.0.1", port: int = 8000) -> None:
+def run_preview_server(host: str = "0.0.0.0", port: int = 8000) -> None:
     server = ThreadingHTTPServer((host, port), PreviewHandler)
     print(f"Preview server running at http://{host}:{port}")
     server.serve_forever()
 
 
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="启动 AI 广告预览页面")
+    parser.add_argument("--host", default="0.0.0.0", help="监听地址，容器/远程访问请用 0.0.0.0")
+    parser.add_argument("--port", type=int, default=8000, help="监听端口")
+    return parser
+
+
+def main() -> None:
+    args = _build_parser().parse_args()
+    run_preview_server(host=args.host, port=args.port)
+
+
 if __name__ == "__main__":
-    run_preview_server()
+    main()

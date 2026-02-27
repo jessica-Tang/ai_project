@@ -40,7 +40,7 @@ python -m ad_tool.cli flow https://shop.example.com/shoe-ultra-1 --channel meta 
 启动本地预览服务：
 
 ```bash
-python -m ad_tool.web_preview
+python -m ad_tool.web_preview --host 0.0.0.0 --port 8000
 ```
 
 浏览器打开：`http://127.0.0.1:8000`
@@ -66,4 +66,25 @@ bash scripts/run_local_flow.sh "https://shop.example.com/shoe-ultra-1" ./artifac
 
 ```bash
 python -m unittest discover -s tests -p "test_*.py"
+```
+
+
+### 常见问题：127.0.0.1 拒绝连接
+
+1. 确认服务已启动：
+```bash
+python -m ad_tool.web_preview --host 0.0.0.0 --port 8000
+```
+2. 本机访问：`http://127.0.0.1:8000`；如果是容器/远程开发环境，请用对应转发地址（例如 `http://localhost:8000`）。
+3. 检查端口是否在监听：
+```bash
+ss -ltnp | rg 8000
+```
+4. 如果 8000 被占用，换端口：
+```bash
+python -m ad_tool.web_preview --host 0.0.0.0 --port 8080
+```
+5. 用 curl 快速自检：
+```bash
+curl -s http://127.0.0.1:8000 | head -n 3
 ```
