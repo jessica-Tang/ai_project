@@ -1,300 +1,88 @@
-# AI 生成广告功能设计方案
+# AI 生成广告功能设计方案（含 Agent / Skill 编排）
 
 ## 1. 目标与边界
 
 ### 1.1 目标
-围绕你提供的三页流程，设计一套“可控、可编辑、可落地”的 AI 广告生成能力：
-1. **页面一（产品链接输入）**：AI 快速理解商品并生成“页面二可直接编辑”的推荐草案。
-2. **页面二（信息编辑 + 素材区）**：用户在 AI 推荐基础上修订；可选触发 AI 素材生成。
-3. **页面三（账户结构预算预览）**：把页面二确认的信息编排为 Campaign/Adset/Ad 结构供最终提交。
+围绕三页流程，设计一套“可控、可编辑、可落地”的 AI 广告生成功能，并补充 Agent / Skill 调用链路：
+1. **页面一（产品链接输入）**：由 Project Planning Agent 生成推荐草案。
+2. **页面二（信息编辑 + 素材区）**：用户可修改推荐；可选触发 Creative Generation Agent。
+3. **页面三（账户结构预算预览）**：由 Account Structuring Agent 生成结构供预览。
 
-### 1.2 边界（按你的说明）
-- 页面三点击“提交创建”后，**不需要 Agent 参与**；由既有工程代码调用媒体 API 完成创建。
-- AI 主要负责“理解 + 推荐 + 结构化输出”，而不是替代投放系统。
-
----
-
-## 2. 总体架构（对应你要的 3 个模块）
-
-## 模块 A：链接理解与投放草案生成（对应页面一 -> 页面二）
-- **输入**
-  - 必填：产品链接
-  - 建议补充：推广渠道、预算区间（如果页面一愿意提前收集）
-- **输出（供页面二回填）**
-  - 页面二展示字段：渠道推荐、账户推荐、投放时间建议、预算建议
-  - 页面二可隐藏但后续可用字段：定向建议、文案建议、落地页卖点摘要、风险提示（如敏感词）
-
-## 模块 B：投放信息编排为账户结构（对应页面二 -> 页面三）
-- **输入**
-  - 渠道、账户、投放时间、预算、素材、定向、文案（以用户最终编辑值为准）
-- **输出**
-  - Campaign / Adset / Ad 的结构化草案
-  - 包含预算拆分、定向拆分、素材挂载、命名规范、校验结果
-
-## 模块 C：素材生成（页面二可选触发）
-- **触发条件**
-  - 用户在素材区域点击“AI 生成素材”按钮后触发
-- **输入**
-  - 商品链接解析结果、渠道、版位、素材规格、品牌约束
-- **输出**
-  - 图片/视频/标题文案候选 + 可编辑元数据
+### 1.2 边界
+- 页面三点击“提交创建”后，**不需要 Agent 参与**；由工程代码调用媒体 API 完成创建。
+- Agent 负责“建议、编排、校验”，不直接替代投放系统。
 
 ---
 
-## 3. 三个页面的交互流程（建议）
+## 2. 端到端流程（你要求的形态）
 
-### 3.1 页面一：输入产品链接
-1. 用户输入产品链接并点击确认。
-2. 前端调用模块 A。
-3. 后端执行：
-   - 抓取并解析商品信息（标题、价格、卖点、图片、类目、品牌）
-   - 进行渠道适配建议（不同媒体偏好不同）
-   - 输出页面二默认值
-4. 跳转页面二并自动回填推荐值。
-
-### 3.2 页面二：编辑与增强
-1. 左侧：展示 AI 推荐的渠道、账户、时间、预算等，用户可改。
-2. 右侧：默认手动上传素材。
-3. 若用户点击“AI 生成素材”：
-   - 打开弹窗，用户可设置风格、尺寸、数量等
-   - 调用模块 C 生成素材候选
-   - 用户选择素材回填到页面二
-4. 用户点击下一步，调用模块 B 进行结构编排。
-
-### 3.3 页面三：结构预览与提交
-1. 展示 Campaign / Adset / Ad 树状结构。
-2. 重点展示预算、定向、素材、文案映射关系。
-3. 用户确认后点击提交。
-4. 交由你现有工程代码调用媒体 API 创建广告（AI 流程到此结束）。
-
----
-
-## 4. 每个模块的接口草案（可直接给研发）
-
-## 4.1 模块 A：`POST /ai/ad-plan/from-link`
-
-### Request
-```json
-{
-  "product_url": "https://example.com/product/123",
-  "channel_hint": "meta",
-  "budget_hint": {
-    "currency": "USD",
-    "amount": 500
-  },
-  "locale": "zh-CN"
-}
+```text
+[User]
+   ↓
+Page1: 输入URL
+   ↓
+Project Planning Agent
+   ↓
+Page2 展示推荐
+   ↓
+用户修改 & 确认
+   ↓
+Account Structuring Agent
+   ↓
+Page3 展示结构
+   ↓
+用户点击创建
+   ↓
+工程调用媒体 API
 ```
 
-### Response
-```json
-{
-  "product_summary": {
-    "title": "轻薄跑鞋",
-    "highlights": ["缓震", "透气", "通勤运动两用"],
-    "category": "鞋靴"
-  },
-  "page2_defaults": {
-    "channel": "meta",
-    "ad_account_id": "act_xxx",
-    "schedule": {
-      "start_time": "2026-03-01T08:00:00+08:00",
-      "end_time": "2026-03-15T23:00:00+08:00"
-    },
-    "budget": {
-      "currency": "USD",
-      "daily": 35,
-      "total": 500
-    }
-  },
-  "hidden_recommendations": {
-    "targeting": [
-      {"segment": "健身兴趣人群", "age": "18-34"}
-    ],
-    "copy": [
-      {"headline": "轻一步，快一路", "primary_text": "全天舒适缓震，跑步通勤都能穿。"}
-    ],
-    "risk_notes": ["避免绝对化用语，如‘最强’"]
-  }
-}
-```
-
-## 4.2 模块 B：`POST /ai/ad-structure/build`
-
-### Request
-```json
-{
-  "channel": "meta",
-  "ad_account_id": "act_xxx",
-  "schedule": {
-    "start_time": "2026-03-01T08:00:00+08:00",
-    "end_time": "2026-03-15T23:00:00+08:00"
-  },
-  "budget": {
-    "currency": "USD",
-    "total": 500,
-    "strategy": "auto_split"
-  },
-  "targeting": [
-    {"name": "兴趣包A", "countries": ["US"], "age_min": 18, "age_max": 34}
-  ],
-  "creatives": [
-    {"asset_id": "img_1", "headline": "轻一步，快一路", "text": "全天舒适缓震"}
-  ]
-}
-```
-
-### Response
-```json
-{
-  "campaigns": [
-    {
-      "name": "CAMP_US_Conversion_20260301",
-      "objective": "CONVERSIONS",
-      "budget": {"currency": "USD", "amount": 500},
-      "adsets": [
-        {
-          "name": "ADSET_InterestA_18-34",
-          "budget": {"currency": "USD", "amount": 500},
-          "targeting": {"countries": ["US"], "age_min": 18, "age_max": 34},
-          "ads": [
-            {
-              "name": "AD_img_1_v1",
-              "creative_ref": "img_1"
-            }
-          ]
-        }
-      ]
-    }
-  ],
-  "validation": {
-    "errors": [],
-    "warnings": ["当前仅 1 个受众包，建议 A/B 测试至少 2 个"]
-  }
-}
-```
-
-## 4.3 模块 C：`POST /ai/creative/generate`
-
-### Request
-```json
-{
-  "product_url": "https://example.com/product/123",
-  "channel": "meta",
-  "placements": ["feed", "story"],
-  "asset_spec": {
-    "image_sizes": ["1080x1080", "1080x1920"],
-    "count": 4
-  },
-  "brand_constraints": {
-    "tone": "专业、运动",
-    "must_include": ["品牌logo"],
-    "forbidden": ["医疗功效暗示"]
-  }
-}
-```
-
-### Response
-```json
-{
-  "assets": [
-    {
-      "asset_id": "gen_img_001",
-      "type": "image",
-      "size": "1080x1080",
-      "url": "https://cdn.example.com/gen_img_001.jpg",
-      "headline": "轻一步，快一路",
-      "text": "全天舒适缓震，跑步通勤都能穿。"
-    }
-  ],
-  "safety": {
-    "status": "pass",
-    "notes": []
-  }
-}
+可选分支：
+```text
+Page2 点击生成素材
+   ↓
+Creative Generation Agent
 ```
 
 ---
 
-## 5. 页面字段映射建议（避免前后端错位）
+## 3. Agent 与 Skill 设计
 
-- 页面一 `product_url` -> 模块 A 输入
-- 模块 A `page2_defaults` -> 页面二左侧默认值
-- 页面二最终编辑值 + 素材列表 -> 模块 B 输入
-- 模块 B `campaigns[]` -> 页面三展示模型
-- 页面二 AI 弹窗参数 -> 模块 C 输入
-- 模块 C `assets[]` -> 页面二素材列表
+### 3.1 Project Planning Agent（页面一后）
+- 目标：从产品链接输出页面二推荐值。
+- 输入：`product_url` + 渠道/预算提示。
+- 输出：`page2_defaults`、`hidden_recommendations`。
+- 默认 skills：
+  - `channel-recommendation`：按渠道映射推荐账户等默认值。
+  - `compliance-check`：补充风险提示（敏感词/极限词）。
 
-建议前端统一使用 `draft_id` 贯穿三页，便于缓存与回退。
+### 3.2 Account Structuring Agent（页面二确认后）
+- 目标：将页面二最终信息编排为 Campaign / Adset / Ad。
+- 输入：渠道、预算、时间、定向、素材。
+- 输出：结构化账户草案 + 校验信息。
+- 默认 skills：
+  - `budget-allocation`：多 adset 预算自动拆分。
+  - `compliance-check`：结构输出附带合规提示。
 
----
-
-## 6. AI 策略建议（提高可控性）
-
-1. **推荐不等于自动执行**：所有 AI 输出都以“推荐值”进入 UI，由用户最终确认。
-2. **规则优先 + LLM 补全**：
-   - 预算、命名、基础合规可走规则引擎
-   - 定向组合、文案角度由 LLM 提供候选
-3. **多候选机制**：文案、定向、素材建议至少给 3 套，提升可选性。
-4. **解释性字段**：给每个推荐值附 `reason`，便于用户理解与信任。
-5. **置信度与告警**：输出 `confidence_score` 与 `warnings`，低置信度时提示用户重点检查。
-
----
-
-## 7. 状态机与任务编排（工程落地）
-
-建议使用一个 `ad_draft` 实体：
-- `INIT`（页面一已提交）
-- `PLANNED`（模块 A 完成）
-- `EDITING`（页面二编辑中）
-- `STRUCTURED`（模块 B 完成，可在页面三预览）
-- `READY_TO_CREATE`（用户确认，可提交给现有创建链路）
-
-素材生成任务可异步：
-- `CREATIVE_PENDING` -> `CREATIVE_DONE` / `CREATIVE_FAILED`
+### 3.3 Creative Generation Agent（页面二可选）
+- 触发：用户点击“AI 生成素材”。
+- 输出：素材候选 + 可编辑文案字段。
+- 说明：该 agent 可独立调用，不阻塞手动上传素材流程。
 
 ---
 
-## 8. 风险与治理
+## 4. 模块与 Agent 的对应
 
-1. **链接解析失败**：给出手动补录商品信息入口。
-2. **渠道政策风险**：增加基础审核（敏感词、极限词、违规承诺）。
-3. **预算异常**：设置阈值校验（最小预算、币种合法性、时间跨度合理性）。
-4. **素材版权风险**：AI 生成素材记录来源与生成参数，保留审计日志。
-5. **性能**：模块 A/B 目标 2~5 秒内返回；模块 C 可异步并支持进度提示。
+- 模块 A（链接 -> 推荐）= `ProjectPlanningAgent`
+- 模块 B（页面二 -> 结构）= `AccountStructuringAgent`
+- 模块 C（素材生成）= `CreativeGenerationAgent`
 
----
-
-## 9. 你这个方案的最小可用版本（MVP）
-
-### MVP 范围
-- 页面一接入模块 A，自动回填页面二默认值。
-- 页面二完成“手动上传素材 + 可选 AI 生成素材弹窗（模块 C）”。
-- 页面二点击下一步调用模块 B，页面三展示结构化结果。
-- 页面三提交后走现有媒体 API 创建链路。
-
-### MVP 不做
-- 自动投放优化闭环
-- 高级多臂实验
-- 跨渠道统一归因
+也就是说你的原 3 模块划分保持不变，只是补了 Agent/Skill 运行层。
 
 ---
 
-## 10. 验收标准（你可以直接给测试同学）
+## 5. MVP 验收补充（Agent/Skill）
 
-1. 输入有效商品链接后，页面二可在 5 秒内看到推荐字段。
-2. 用户修改任意推荐值后，不会被 AI 二次覆盖。
-3. 不触发模块 C 时，手动上传素材可完整走通到页面三。
-4. 触发模块 C 后，生成素材可被选择并进入模块 B 的结构输出。
-5. 页面三展示的 Campaign/Adset/Ad 结构与页面二输入一致。
-6. 点击提交后，AI 模块不再参与，调用现有创建链路成功。
-
----
-
-## 11. 一句话总结
-
-你的三模块划分是合理的：
-- 模块 A 负责“从链接到投放建议”；
-- 模块 B 负责“从用户确认信息到账户结构”；
-- 模块 C 负责“按需触发的素材生成”；
-并且与“页面三提交后走现有工程代码”这一边界天然兼容。
+1. `plan`/`flow` 响应中可看到 `planning_agent.skill_trace`。
+2. `structure`/`flow` 响应中可看到 `structuring_agent.skill_trace`。
+3. 用户不触发素材生成时，流程依旧可走通（手动素材）。
+4. 页面三点击创建后不再进入任何 agent。

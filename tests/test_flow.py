@@ -12,11 +12,11 @@ class FlowTests(unittest.TestCase):
             use_ai_creatives=True,
             ai_creative_count=2,
         )
-        self.assertIn("plan", payload)
-        self.assertIn("creatives", payload)
-        self.assertIn("structure", payload)
-        self.assertEqual(len(payload["creatives"]), 2)
-        self.assertEqual(payload["structure"]["validation"]["errors"], [])
+        self.assertIn("planning_agent", payload)
+        self.assertIn("structuring_agent", payload)
+        self.assertIn("creative_agent", payload)
+        self.assertEqual(payload["planning_agent"]["agent"], "project-planning-agent")
+        self.assertEqual(payload["structuring_agent"]["result"]["validation"]["errors"], [])
 
 
 if __name__ == "__main__":

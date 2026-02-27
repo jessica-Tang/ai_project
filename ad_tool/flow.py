@@ -1,10 +1,7 @@
-from dataclasses import asdict
 from typing import Any
 
-from .creative_generator import generate_creatives
+from .agents import AccountStructuringAgent, CreativeGenerationAgent, ProjectPlanningAgent
 from .models import AdInput, Budget, CreativeAsset, Schedule, TargetingSegment
-from .planner import generate_plan_from_link
-from .structure_builder import build_account_structure
 
 
 def run_local_flow(
@@ -14,26 +11,31 @@ def run_local_flow(
     use_ai_creatives: bool = False,
     ai_creative_count: int = 3,
 ) -> dict[str, Any]:
-    """Run module A -> (optional C) -> B and return merged payload for local integration testing."""
-    plan = generate_plan_from_link(product_url=product_url, channel_hint=channel, budget_total=budget_total)
+    """Run agent-based flow: ProjectPlanningAgent -> (optional CreativeGenerationAgent) -> AccountStructuringAgent."""
+    planning_agent = ProjectPlanningAgent()
+    plan_output = planning_agent.run(product_url=product_url, channel=channel, budget_total=budget_total)
+    plan = plan_output["result"]
 
     targeting = [
         TargetingSegment(name=item["segment"], countries=item.get("countries", ["US"]))
-        for item in plan.hidden_recommendations.get("targeting", [])
+        for item in plan.get("hidden_recommendations", {}).get("targeting", [])
     ]
     if not targeting:
         targeting = [TargetingSegment(name="兴趣受众")]
 
     if use_ai_creatives:
-        creatives = generate_creatives(
-            product_title=plan.product_summary.title,
+        creative_agent = CreativeGenerationAgent()
+        creative_output = creative_agent.run(
+            product_title=plan["product_summary"]["title"],
             channel=channel,
             sizes=["1080x1080", "1080x1920"],
             count=ai_creative_count,
         )
+        creatives = [CreativeAsset(**item) for item in creative_output["result"]]
     else:
-        copy = plan.hidden_recommendations.get("copy", [])
+        copy = plan.get("hidden_recommendations", {}).get("copy", [])
         first_copy = copy[0] if copy else {"headline": "默认标题", "primary_text": "默认文案"}
+        creative_output = None
         creatives = [
             CreativeAsset(
                 asset_id="manual_001",
@@ -45,7 +47,7 @@ def run_local_flow(
             )
         ]
 
-    defaults = plan.page2_defaults
+    defaults = plan["page2_defaults"]
     ad_input = AdInput(
         channel=defaults["channel"],
         ad_account_id=defaults["ad_account_id"],
@@ -61,10 +63,12 @@ def run_local_flow(
         targeting=targeting,
         creatives=creatives,
     )
-    structure = build_account_structure(ad_input)
+
+    structuring_agent = AccountStructuringAgent()
+    structure_output = structuring_agent.run(ad_input)
 
     return {
-        "plan": plan.to_dict(),
-        "creatives": [asdict(c) for c in creatives],
-        "structure": structure.to_dict(),
+        "planning_agent": plan_output,
+        "creative_agent": creative_output,
+        "structuring_agent": structure_output,
     }

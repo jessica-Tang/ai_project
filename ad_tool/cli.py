@@ -1,28 +1,20 @@
 import argparse
 import json
 
-from .creative_generator import generate_creatives
+from .agents import AccountStructuringAgent, CreativeGenerationAgent, ProjectPlanningAgent
 from .flow import run_local_flow
 from .models import AdInput, Budget, CreativeAsset, Schedule, TargetingSegment
-from .planner import generate_plan_from_link
-from .structure_builder import build_account_structure
-
-
-def _json_default(obj):
-    if hasattr(obj, "__dict__"):
-        return obj.__dict__
-    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 
 def cmd_plan(args: argparse.Namespace) -> None:
-    plan = generate_plan_from_link(args.product_url, args.channel, args.budget)
-    print(json.dumps(plan.to_dict(), ensure_ascii=False, indent=2, default=_json_default))
+    output = ProjectPlanningAgent().run(args.product_url, args.channel, args.budget)
+    print(json.dumps(output, ensure_ascii=False, indent=2))
 
 
 def cmd_creative(args: argparse.Namespace) -> None:
     sizes = [s.strip() for s in args.sizes.split(",") if s.strip()]
-    assets = generate_creatives(args.product_title, args.channel, sizes, args.count)
-    print(json.dumps([a.__dict__ for a in assets], ensure_ascii=False, indent=2))
+    output = CreativeGenerationAgent().run(args.product_title, args.channel, sizes, args.count)
+    print(json.dumps(output, ensure_ascii=False, indent=2))
 
 
 def cmd_structure(args: argparse.Namespace) -> None:
@@ -47,8 +39,8 @@ def cmd_structure(args: argparse.Namespace) -> None:
         targeting=targeting,
         creatives=creatives,
     )
-    structure = build_account_structure(ad_input)
-    print(json.dumps(structure.to_dict(), ensure_ascii=False, indent=2))
+    output = AccountStructuringAgent().run(ad_input)
+    print(json.dumps(output, ensure_ascii=False, indent=2))
 
 
 def cmd_flow(args: argparse.Namespace) -> None:
@@ -63,23 +55,23 @@ def cmd_flow(args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="AI 广告生成工具")
+    parser = argparse.ArgumentParser(description="AI 广告生成工具（含 Agent/Skill 编排）")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_plan = sub.add_parser("plan", help="模块A：根据产品链接生成投放草案")
+    p_plan = sub.add_parser("plan", help="Page1 -> Project Planning Agent")
     p_plan.add_argument("product_url")
     p_plan.add_argument("--channel", default="meta")
     p_plan.add_argument("--budget", type=float, default=500.0)
     p_plan.set_defaults(func=cmd_plan)
 
-    p_creative = sub.add_parser("creative", help="模块C：生成素材")
+    p_creative = sub.add_parser("creative", help="Page2 可选 -> Creative Generation Agent")
     p_creative.add_argument("product_title")
     p_creative.add_argument("--channel", default="meta")
     p_creative.add_argument("--sizes", default="1080x1080,1080x1920")
     p_creative.add_argument("--count", type=int, default=4)
     p_creative.set_defaults(func=cmd_creative)
 
-    p_structure = sub.add_parser("structure", help="模块B：生成账户结构")
+    p_structure = sub.add_parser("structure", help="Page2确认 -> Account Structuring Agent")
     p_structure.add_argument("--channel", default="meta")
     p_structure.add_argument("--account", default="act_demo_001")
     p_structure.add_argument("--start", default="2026-03-01T08:00:00+08:00")
@@ -90,7 +82,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_structure.add_argument("--creative-count", type=int, default=2)
     p_structure.set_defaults(func=cmd_structure)
 
-    p_flow = sub.add_parser("flow", help="一键联调：串联模块 A -> C(可选) -> B")
+    p_flow = sub.add_parser("flow", help="一键联调：Planning Agent -> (Creative Agent) -> Structuring Agent")
     p_flow.add_argument("product_url")
     p_flow.add_argument("--channel", default="meta")
     p_flow.add_argument("--budget", type=float, default=500.0)

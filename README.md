@@ -1,10 +1,19 @@
 # AI 广告生成工具（原型）
 
-这是基于三页流程的可运行原型，实现了 3 个模块：
+这是基于三页流程的可运行原型，实现了 3 个模块并补充了 Agent/Skill 编排：
 
-1. 模块 A：根据产品链接生成页面二推荐草案
-2. 模块 B：根据页面二输入生成页面三账户结构
-3. 模块 C：按需生成 AI 素材候选
+1. 模块 A：根据产品链接生成页面二推荐草案（`ProjectPlanningAgent`）
+2. 模块 B：根据页面二输入生成页面三账户结构（`AccountStructuringAgent`）
+3. 模块 C：按需生成 AI 素材候选（`CreativeGenerationAgent`）
+
+## Agent / Skill 设计（对应你的流程）
+
+- Page1 输入 URL -> `ProjectPlanningAgent`
+  - 典型 skills：`channel-recommendation`、`compliance-check`
+- Page2 用户修改并确认 -> `AccountStructuringAgent`
+  - 典型 skills：`budget-allocation`、`compliance-check`
+- Page2 可选点击生成素材 -> `CreativeGenerationAgent`
+- Page3 点击创建 -> 交由工程代码调用媒体 API（不走 agent）
 
 ## 运行方式
 
@@ -20,10 +29,10 @@ python -m ad_tool.cli structure --channel meta --budget 600 --targeting 兴趣�
 python -m ad_tool.cli flow https://shop.example.com/shoe-ultra-1 --channel meta --budget 600 --use-ai-creatives --ai-creative-count 3
 ```
 
-会返回一个合并 JSON：
-- `plan`：模块 A 产物
-- `creatives`：素材列表（可选 AI）
-- `structure`：模块 B 产物
+输出里会包含：
+- `planning_agent`（含 `skill_trace`）
+- `creative_agent`（如果启用）
+- `structuring_agent`（含 `skill_trace`）
 
 ## 本地脚本（自动生成文件）
 
