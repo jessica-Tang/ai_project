@@ -34,6 +34,23 @@ python -m ad_tool.cli flow https://shop.example.com/shoe-ultra-1 --channel meta 
 - `creative_agent`（如果启用）
 - `structuring_agent`（含 `skill_trace`）
 
+
+## 可视化本地预览（页面方式）
+
+启动本地预览服务：
+
+```bash
+python -m ad_tool.web_preview
+```
+
+浏览器打开：`http://127.0.0.1:8000`
+
+你可以在单页面里完整试用：
+1. Page1 输入 URL 并生成推荐（Project Planning Agent）
+2. Page2 修改参数，选择手动素材或点击 AI 生成素材（Creative Generation Agent）
+3. 生成 Page3 账户结构（Account Structuring Agent）
+4. 点击“提交创建(模拟)”验证页面3后续已交给工程媒体 API 链路
+
 ## 本地脚本（自动生成文件）
 
 ```bash
